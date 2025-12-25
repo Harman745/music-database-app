@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}{{ artist['artist_name'] }} - Music Database{% endblock %}
+
+{% block content %}
+<div class="artist-detail-page">
+    <div class="container">
+        <div class="artist-header">
+            <div class="artist-image-large">
+                {% if artist['image_url'] %}
+                    <img src="{{ artist['image_url'] }}" alt="{{ artist['artist_name'] }}" onerror="this.src='/static/images/default-artist.jpg'">
+                {% else %}
+                    <div class="artist-placeholder-large">🎤</div>
+                {% endif %}
+            </div>
+            <div class="artist-meta">
+                <h1>{{ artist['artist_name'] }}</h1>
+                <p class="artist-country">📍 {{ artist['country'] or 'Unknown' }}</p>
+                {% if artist['formed_year'] %}
+                    <p class="artist-formed">📅 Formed: {{ artist['formed_year'] }}</p>
+                {% endif %}
+                {% if artist['biography'] %}
+                    <p class="artist-bio">{{ artist['biography'] }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <section class="artist-albums-section">
+            <h3>Albums by {{ artist['artist_name'] }}</h3>
+            <div class="album-grid">
+                {% if albums %}
+                    {% for album in albums %}
+                    <div class="album-card">
+                        <a href="{{ url_for('album_detail', album_id=album['album_id']) }}">
+                            <div class="album-cover">
+                                {% if album['cover_image_url'] %}
+                                    <img src="{{ album['cover_image_url'] }}" alt="{{ album['album_title'] }}" onerror="this.src='/static/images/default-album.jpg'">
+                                {% else %}
+                                    <div class="album-placeholder">🎵</div>
+                                {% endif %}
+                            </div>
+                            <div class="album-info">
+                                <h3>{{ album['album_title'] }}</h3>
+                                <p class="release-year">{{ album['release_date'][:4] if album['release_date'] else 'Unknown' }}</p>
+                                <div class="rating">
+                                    <span class="stars">
+                                        {% set rating = album['avg_rating']|float %}
+                                        {% for i in range(5) %}
+                                            {% if i < rating %}★{% else %}☆{% endif %}
+                                        {% endfor %}
+                                    </span>
+                                    <span class="rating-text">
+                                        {{ "%.1f"|format(album['avg_rating']) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="no-results">No albums found for this artist.</p>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

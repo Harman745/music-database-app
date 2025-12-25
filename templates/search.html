@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results - Music Database{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>Search Results</h1>
+        {% if results %}
+            <p>Results for "{{ results.query }}"</p>
+        {% else %}
+            <p>Enter a search term to find music</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="container">
+    {% if results %}
+        {% if results.albums %}
+        <section class="search-section">
+            <h2>Albums ({{ results.albums|length }})</h2>
+            <div class="album-grid">
+                {% for album in results.albums %}
+                <div class="album-card">
+                    <a href="{{ url_for('album_detail', album_id=album['album_id']) }}">
+                        <div class="album-cover">
+                            {% if album['cover_image_url'] %}
+                                <img src="{{ album['cover_image_url'] }}" alt="{{ album['album_title'] }}" onerror="this.src='/static/images/default-album.jpg'">
+                            {% else %}
+                                <div class="album-placeholder">🎵</div>
+                            {% endif %}
+                        </div>
+                        <div class="album-info">
+                            <h3>{{ album['album_title'] }}</h3>
+                            <p class="artist-name">{{ album['artist_name'] }}</p>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if results.artists %}
+        <section class="search-section">
+            <h2>Artists ({{ results.artists|length }})</h2>
+            <div class="artists-grid">
+                {% for artist in results.artists %}
+                <div class="artist-card">
+                    <a href="{{ url_for('artist_detail', artist_id=artist['artist_id']) }}">
+                        <div class="artist-image">
+                            {% if artist['image_url'] %}
+                                <img src="{{ artist['image_url'] }}" alt="{{ artist['artist_name'] }}" onerror="this.src='/static/images/default-artist.jpg'">
+                            {% else %}
+                                <div class="artist-placeholder">🎤</div>
+                            {% endif %}
+                        </div>
+                        <div class="artist-info">
+                            <h3>{{ artist['artist_name'] }}</h3>
+                            <p class="artist-country">{{ artist['country'] or 'Unknown' }}</p>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if results.tracks %}
+        <section class="search-section">
+            <h2>Tracks ({{ results.tracks|length }})</h2>
+            <div class="tracks-list">
+                {% for track in results.tracks %}
+                <div class="track-result">
+                    <div class="track-info">
+                        <h3>{{ track['track_title'] }}</h3>
+                        <p>{{ track['artist_name'] }} - {{ track['album_title'] }}</p>
+                    </div>
+                    <span class="track-duration">
+                        {{ (track['duration_seconds'] // 60) }}:{{ '%02d'|format(track['duration_seconds'] % 60) }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+
+        {% if not results.albums and not results.artists and not results.tracks %}
+        <div class="no-results-container">
+            <p class="no-results">No results found for "{{ results.query }}"</p>
+            <p>Try different keywords or browse our collection:</p>
+            <div class="search-suggestions">
+                <a href="{{ url_for('albums') }}" class="btn-secondary">Browse Albums</a>
+                <a href="{{ url_for('artists') }}" class="btn-secondary">Browse Artists</a>
+            </div>
+        </div>
+        {% endif %}
+    {% endif %}
+</div>
+{% endblock %}

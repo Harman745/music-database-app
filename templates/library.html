@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}My Library - Music Database{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>My Library</h1>
+        <p>Your personal music collection</p>
+    </div>
+</div>
+
+<div class="container">
+    <section class="library-section">
+        <h2>Favorite Albums</h2>
+        {% if favorite_albums %}
+            <div class="album-grid">
+                {% for album in favorite_albums %}
+                <div class="album-card">
+                    <a href="{{ url_for('album_detail', album_id=album['album_id']) }}">
+                        <div class="album-cover">
+                            {% if album['cover_image_url'] %}
+                                <img src="{{ album['cover_image_url'] }}" alt="{{ album['album_title'] }}" onerror="this.src='/static/images/default-album.jpg'">
+                            {% else %}
+                                <div class="album-placeholder">🎵</div>
+                            {% endif %}
+                        </div>
+                        <div class="album-info">
+                            <h3>{{ album['album_title'] }}</h3>
+                            <p class="artist-name">{{ album['artist_name'] }}</p>
+                            <div class="rating">
+                                <span class="stars">
+                                    {% set rating = album['avg_rating']|float %}
+                                    {% for i in range(5) %}
+                                        {% if i < rating %}★{% else %}☆{% endif %}
+                                    {% endfor %}
+                                </span>
+                                <span class="rating-text">
+                                    {{ "%.1f"|format(album['avg_rating']) }}
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="no-results">You haven't favorited any albums yet. Start exploring music!</p>
+            <a href="{{ url_for('albums') }}" class="btn-primary">Browse Albums</a>
+        {% endif %}
+    </section>
+
+    <section class="library-section">
+        <h2>My Playlists</h2>
+        {% if playlists %}
+            <div class="playlists-list">
+                {% for playlist in playlists %}
+                <div class="playlist-card">
+                    <div class="playlist-icon">📚</div>
+                    <div class="playlist-info">
+                        <h3>{{ playlist['playlist_name'] }}</h3>
+                        <p>{{ playlist['track_count'] }} track(s)</p>
+                        <p class="playlist-date">Created: {{ playlist['created_date'][:10] }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="no-results">You haven't created any playlists yet.</p>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

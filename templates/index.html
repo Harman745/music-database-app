@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Music Database{% endblock %}
+
+{% block content %}
+<div class="hero">
+    <div class="container">
+        <h1>Discover Amazing Music</h1>
+        <p>Explore millions of songs, albums, and artists. Create playlists, write reviews, and manage your music library.</p>
+        <div class="hero-actions">
+            {% if not session.username %}
+                <a href="{{ url_for('register') }}" class="btn-large btn-primary">Get Started</a>
+                <a href="{{ url_for('albums') }}" class="btn-large btn-secondary">Browse Albums</a>
+            {% else %}
+                <a href="{{ url_for('albums') }}" class="btn-large btn-primary">Browse Albums</a>
+                <a href="{{ url_for('library') }}" class="btn-large btn-secondary">My Library</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<section class="featured-section">
+    <div class="container">
+        <h2>Featured Albums</h2>
+        <div class="album-grid">
+            {% for album in albums %}
+            <div class="album-card">
+                <a href="{{ url_for('album_detail', album_id=album['album_id']) }}">
+                    <div class="album-cover">
+                        {% if album['cover_image_url'] %}
+                            <img src="{{ album['cover_image_url'] }}" alt="{{ album['album_title'] }}" onerror="this.src='/static/images/default-album.jpg'">
+                        {% else %}
+                            <div class="album-placeholder">🎵</div>
+                        {% endif %}
+                    </div>
+                    <div class="album-info">
+                        <h3>{{ album['album_title'] }}</h3>
+                        <p class="artist-name">{{ album['artist_name'] }}</p>
+                        <div class="rating">
+                            <span class="stars">
+                                {% set rating = album['avg_rating']|float %}
+                                {% for i in range(5) %}
+                                    {% if i < rating %}★{% else %}☆{% endif %}
+                                {% endfor %}
+                            </span>
+                            <span class="rating-text">
+                                {{ "%.1f"|format(album['avg_rating']) }} 
+                                ({{ album['review_count'] }} reviews)
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="features-section">
+    <div class="container">
+        <h2>Why Choose Our Music Database?</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🎵</div>
+                <h3>Vast Collection</h3>
+                <p>Explore thousands of albums, artists, and tracks across all genres.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⭐</div>
+                <h3>Reviews & Ratings</h3>
+                <p>Read and write reviews, rate albums, and discover what others love.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📚</div>
+                <h3>Personal Library</h3>
+                <p>Build your own music library with favorites and custom playlists.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <h3>Advanced Search</h3>
+                <p>Find exactly what you're looking for with powerful search filters.</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Music Database{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <a href="{{ url_for('index') }}">🎵 Music Database</a>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="{{ url_for('index') }}">Home</a></li>
+                <li><a href="{{ url_for('artists') }}">Artists</a></li>
+                <li><a href="{{ url_for('albums') }}">Albums</a></li>
+                {% if session.username %}
+                    <li><a href="{{ url_for('library') }}">My Library</a></li>
+                    <li class="user-menu">
+                        <span>👤 {{ session.username }}</span>
+                        <a href="{{ url_for('logout') }}" class="btn-secondary">Logout</a>
+                    </li>
+                {% else %}
+                    <li><a href="{{ url_for('login') }}" class="btn-primary">Login</a></li>
+                    <li><a href="{{ url_for('register') }}" class="btn-secondary">Register</a></li>
+                {% endif %}
+            </ul>
+            <div class="search-box">
+                <form action="{{ url_for('search') }}" method="get">
+                    <input type="text" name="q" placeholder="Search music..." value="{{ request.args.get('q', '') }}">
+                    <button type="submit">🔍</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                            <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2024 Music Database System. Built with Flask, MySQL, HTML & CSS.</p>
+            <p>A comprehensive online music database for discovering and managing your music collection.</p>
+        </div>
+    </footer>
+</body>
+</html>
