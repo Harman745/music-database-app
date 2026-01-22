@@ -1,3 +1,4 @@
+<!--Done by Yuvraj Singh Bahia 24129212-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -16,7 +17,7 @@
                 <li><a href="{{ url_for('index') }}">Home</a></li>
                 <li><a href="{{ url_for('artists') }}">Artists</a></li>
                 <li><a href="{{ url_for('albums') }}">Albums</a></li>
-                {% if session.username %}
+                {% if session.username %} <!-- checking to see if there is a user logged onto the site-->
                     <li><a href="{{ url_for('library') }}">My Library</a></li>
                     <li class="user-menu">
                         <span>👤 {{ session.username }}</span>
