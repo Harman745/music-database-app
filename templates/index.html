@@ -1,3 +1,4 @@
+<!--Done by Yuvraj Singh Bahia 24129212-->
 {% extends "base.html" %}
 
 {% block title %}Home - Music Database{% endblock %}
@@ -7,8 +8,8 @@
     <div class="container">
         <h1>Discover Amazing Music</h1>
         <p>Explore millions of songs, albums, and artists. Create playlists, write reviews, and manage your music library.</p>
-        <div class="hero-actions">
-            {% if not session.username %}
+        <div class="hero-actions"> 
+            {% if not session.username %} <!-- checking to see if there is a user logged onto the site-->
                 <a href="{{ url_for('register') }}" class="btn-large btn-primary">Get Started</a>
                 <a href="{{ url_for('albums') }}" class="btn-large btn-secondary">Browse Albums</a>
             {% else %}
@@ -27,7 +28,7 @@
             <div class="album-card">
                 <a href="{{ url_for('album_detail', album_id=album['album_id']) }}">
                     <div class="album-cover">
-                        {% if album['cover_image_url'] %}
+                        {% if album['cover_image_url'] %} <!-- checking to see if an album has a cover image-->
                             <img src="{{ album['cover_image_url'] }}" alt="{{ album['album_title'] }}" onerror="this.src='/static/images/default-album.jpg'">
                         {% else %}
                             <div class="album-placeholder">🎵</div>
@@ -39,7 +40,7 @@
                         <div class="rating">
                             <span class="stars">
                                 {% set rating = album['avg_rating']|float %}
-                                {% for i in range(5) %}
+                                {% for i in range(5) %} <!-- album rating in stars-->
                                     {% if i < rating %}★{% else %}☆{% endif %}
                                 {% endfor %}
                             </span>
