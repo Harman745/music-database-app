@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Achievements - Music Database{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>🏆 Achievements</h1>
+        <p>Track your musical journey and earn badges</p>
+    </div>
+</div>
+
+<div class="container">
+    {% if session.username %}
+    <section class="achievements-stats">
+        <h2>Your Progress</h2>
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-number">{{ user_achievements|length }}</span>
+                <span class="stat-label">Earned</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ all_achievements|length - user_achievements|length }}</span>
+                <span class="stat-label">Remaining</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">{{ (user_achievements|length / all_achievements|length * 100)|round|int }}%</span>
+                <span class="stat-label">Complete</span>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="achievements-grid">
+        {% for achievement in all_achievements %}
+        {% set earned_achievement = namespace(found=false, date='') %}
+        {% if session.username %}
+            {% for ua in user_achievements %}
+                {% if ua['achievement_id'] == achievement['achievement_id'] %}
+                    {% set earned_achievement.found = true %}
+                    {% set earned_achievement.date = ua['earned_date'][:10] %}
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+        <div class="achievement-card {% if earned_achievement.found %}earned{% else %}locked{% endif %}">
+            <div class="achievement-icon">{{ achievement['icon'] }}</div>
+            <div class="achievement-info">
+                <h3>{{ achievement['achievement_name'] }}</h3>
+                <p>{{ achievement['description'] }}</p>
+                {% if earned_achievement.found %}
+                    <span class="earned-date">✓ Earned on {{ earned_achievement.date }}</span>
+                {% else %}
+                    <span class="progress">{{ achievement['requirement_value'] }} required</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+
+    {% if not session.username %}
+    <div class="login-prompt">
+        <p>🔒 <a href="{{ url_for('login') }}">Login</a> to track your achievements!</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.achievements-stats {
+    background: linear-gradient(135deg, #1DB954 0%, #1ed760 100%);
+    padding: 2rem;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    color: white;
+}
+
+.achievements-stats h2 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+}
+
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    text-align: center;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-number {
+    font-size: 3rem;
+    font-weight: bold;
+}
+
+.stat-label {
+    font-size: 1rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.achievement-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.3s;
+}
+
+.achievement-card.earned {
+    border: 2px solid #1DB954;
+    background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%);
+}
+
+.achievement-card.locked {
+    opacity: 0.6;
+    filter: grayscale(50%);
+}
+
+.achievement-card:hover {
+    transform: translateY(-5px);
+}
+
+.achievement-icon {
+    font-size: 3rem;
+    flex-shrink: 0;
+}
+
+.achievement-info h3 {
+    margin: 0 0 0.5rem 0;
+    color: #191414;
+}
+
+.achievement-info p {
+    margin: 0 0 0.5rem 0;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.earned-date {
+    color: #1DB954;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+.progress {
+    color: #999;
+    font-size: 0.85rem;
+}
+
+.login-prompt {
+    text-align: center;
+    padding: 3rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    margin-top: 2rem;
+    border: 2px solid rgba(29, 185, 84, 0.3);
+}
+
+.login-prompt p {
+    font-size: 1.2rem;
+    color: #ffffff;
+}
+
+.login-prompt a {
+    color: #1DB954;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .stats-bar {
+        grid-template-columns: 1fr;
+    }
+    
+    .achievements-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

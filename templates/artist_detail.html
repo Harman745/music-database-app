@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}{{ artist['artist_name'] }} - Music Database{% endblock %}
+
+{% block content %}
+<div class="artist-detail-page">
+    <div class="container">
+        <div class="artist-header">
+            <div class="artist-image-large">
+                {% if artist['image_url'] %}
+                    <img src="{{ artist['image_url'] }}" alt="{{ artist['artist_name'] }}" onerror="this.src='/static/images/default-artist.jpg'">
+                {% else %}
+                    <div class="artist-placeholder-large">🎤</div>
+                {% endif %}
+            </div>
+            <div class="artist-meta">
+                <h1>{{ artist['artist_name'] }}</h1>
+                <p class="artist-country">📍 {{ artist['country'] or 'Unknown' }}</p>
+                {% if artist['formed_year'] %}
+                    <p class="artist-formed">📅 Formed: {{ artist['formed_year'] }}</p>
+                {% endif %}
+                
+                <!-- Artist Stats -->
+                <div class="artist-stats">
+                    <div class="stat-box">
+                        <span class="stat-icon">⭐</span>
+                        <div class="stat-content">
+                            <span class="stat-value">{{ "%.1f"|format(artist['avg_rating']) }}</span>
+                            <span class="stat-label">Rating ({{ artist['rating_count'] }} ratings)</span>
+                        </div>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-icon">🎧</span>
+                        <div class="stat-content">
+                            <span class="stat-value">{{ active_listeners }}</span>
+                            <span class="stat-label">Active Listeners</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Rate Artist -->
+                {% if session.username %}
+                <div class="rate-artist-section">
+                    <h4>Rate this Artist</h4>
+                    <form method="POST" action="{{ url_for('rate_artist', artist_id=artist['artist_id']) }}" class="rating-form">
+                        <div class="star-rating">
+                            <input type="radio" id="star5" name="rating" value="5" {% if user_rating == 5 %}checked{% endif %} required>
+                            <label for="star5" title="5 stars">★</label>
+                            <input type="radio" id="star4" name="rating" value="4" {% if user_rating == 4 %}checked{% endif %}>
+                            <label for="star4" title="4 stars">★</label>
+                            <input type="radio" id="star3" name="rating" value="3" {% if user_rating == 3 %}checked{% endif %}>
+                            <label for="star3" title="3 stars">★</label>
+                            <input type="radio" id="star2" name="rating" value="2" {% if user_rating == 2 %}checked{% endif %}>
+                            <label for="star2" title="2 stars">★</label>
+                            <input type="radio" id="star1" name="rating" value="1" {% if user_rating == 1 %}checked{% endif %}>
+                            <label for="star1" title="1 star">★</label>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            {% if user_rating %}Update Rating{% else %}Submit Rating{% endif %}
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+                
+                {% if artist['biography'] %}
+                    <p class="artist-bio">{{ artist['biography'] }}</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <section class="artist-albums-section">
+            <h3>Albums by {{ artist['artist_name'] }}</h3>
+            <div class="album-grid">
+                {% if albums %}
+                    {% for album in albums %}
+                    <div class="album-card">
+                        <a href="{{ url_for('album_detail', album_id=album['album_id']) }}">
+                            <div class="album-cover">
+                                {% if album['cover_image_url'] %}
+                                    <img src="{{ album['cover_image_url'] }}" alt="{{ album['album_title'] }}" onerror="this.src='/static/images/default-album.jpg'">
+                                {% else %}
+                                    <div class="album-placeholder">🎵</div>
+                                {% endif %}
+                            </div>
+                            <div class="album-info">
+                                <h3>{{ album['album_title'] }}</h3>
+                                <p class="release-year">{{ album['release_date'][:4] if album['release_date'] else 'Unknown' }}</p>
+                                <div class="rating">
+                                    <span class="stars">
+                                        {% set rating = album['avg_rating']|float %}
+                                        {% for i in range(5) %}
+                                            {% if i < rating %}★{% else %}☆{% endif %}
+                                        {% endfor %}
+                                    </span>
+                                    <span class="rating-text">
+                                        {{ "%.1f"|format(album['avg_rating']) }}
+                                    </span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="no-results">No albums found for this artist.</p>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

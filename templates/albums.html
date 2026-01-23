@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Albums - Music Database{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div class="container">
+        <h1>All Albums</h1>
+        <p>Browse our complete collection of albums</p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="filter-section">
+        <form method="GET" action="{{ url_for('albums') }}" class="filter-form">
+            <input type="text" name="search" placeholder="Search albums or artists..." 
+                   value="{{ request.args.get('search', '') }}">
+            <button type="submit" class="btn-primary">Search</button>
+        </form>
+    </div>
+
+    <div class="album-grid">
+        {% if albums %}
+            {% for album in albums %}
+            <div class="album-card">
+                <a href="{{ url_for('album_detail', album_id=album['album_id']) }}">
+                    <div class="album-cover">
+                        {% if album['cover_image_url'] %}
+                            <img src="{{ album['cover_image_url'] }}" alt="{{ album['album_title'] }}" onerror="this.src='/static/images/default-album.jpg'">
+                        {% else %}
+                            <div class="album-placeholder">🎵</div>
+                        {% endif %}
+                    </div>
+                    <div class="album-info">
+                        <h3>{{ album['album_title'] }}</h3>
+                        <p class="artist-name">{{ album['artist_name'] }}</p>
+                        <div class="rating">
+                            <span class="stars">
+                                {% set rating = album['avg_rating']|float %}
+                                {% for i in range(5) %}
+                                    {% if i < rating %}★{% else %}☆{% endif %}
+                                {% endfor %}
+                            </span>
+                            <span class="rating-text">
+                                {{ "%.1f"|format(album['avg_rating']) }}
+                                ({{ album['review_count'] }})
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p class="no-results">No albums found. Try adjusting your search.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
