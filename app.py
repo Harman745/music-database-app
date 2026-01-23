@@ -783,6 +783,190 @@ def library():
     conn.close()
     return render_template('library.html', favorite_albums=favorite_albums, playlists=playlists)
 
+@app.route('/playlist/create', methods=['POST'])
+def create_playlist():
+    if 'user_id' not in session:
+        flash('Please login to create playlists.', 'error')
+        return redirect(url_for('login'))
+
+    playlist_name = request.form['playlist_name']
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO Playlist (user_id, playlist_name)
+        VALUES (?, ?)
+    """, (session['user_id'], playlist_name))
+    conn.commit()
+    conn.close()
+
+    flash('Playlist created successfully!', 'success')
+    return redirect(url_for('library'))
+
+@app.route('/playlist/<int:playlist_id>')
+def view_playlist(playlist_id):
+    if 'user_id' not in session:
+        flash('Please login to view playlists.', 'error')
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM Playlist
+        WHERE playlist_id = ? AND user_id = ?
+    """, (playlist_id, session['user_id']))
+    playlist = cursor.fetchone()
+
+    if not playlist:
+        flash('Playlist not found.', 'error')
+        return redirect(url_for('library'))
+
+    cursor.execute("""
+        SELECT t.track_id, t.track_title, t.duration_seconds,
+               a.album_title, ar.artist_name
+        FROM Playlist_Track pt
+        JOIN Track t ON pt.track_id = t.track_id
+        JOIN Album a ON t.album_id = a.album_id
+        JOIN Artist ar ON a.artist_id = ar.artist_id
+        WHERE pt.playlist_id = ?
+        ORDER BY t.track_number
+    """, (playlist_id,))
+    tracks = cursor.fetchall()
+
+    cursor.execute("""
+        SELECT t.track_id, t.track_title, ar.artist_name
+        FROM Track t
+        JOIN Album a ON t.album_id = a.album_id
+        JOIN Artist ar ON a.artist_id = ar.artist_id
+        ORDER BY ar.artist_name, t.track_title
+    """)
+    all_tracks = cursor.fetchall()
+
+    total_duration = sum(t['duration_seconds'] for t in tracks)
+    track_count = len(tracks)
+
+    conn.close()
+
+    return render_template(
+        'playlist_view.html',
+        playlist=playlist,
+        tracks=tracks,
+        all_tracks=all_tracks,
+        total_duration=total_duration,
+        track_count=track_count
+    )
+
+@app.route('/playlist/<int:playlist_id>/remove/<int:track_id>', methods=['POST'])
+def remove_track(playlist_id, track_id):
+    if 'user_id' not in session:
+        flash('Please login.', 'error')
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        DELETE FROM Playlist_Track
+        WHERE playlist_id = ? AND track_id = ?
+    """, (playlist_id, track_id))
+
+    conn.commit()
+    conn.close()
+
+    flash('Track removed from playlist.', 'info')
+    return redirect(url_for('view_playlist', playlist_id=playlist_id))
+
+@app.route('/playlist/<int:playlist_id>/delete', methods=['POST'])
+def delete_playlist(playlist_id):
+    if 'user_id' not in session:
+        flash('Please login.', 'error')
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Delete all tracks inside the playlist
+    cursor.execute("""
+        DELETE FROM Playlist_Track
+        WHERE playlist_id = ?
+    """, (playlist_id,))
+
+    # Delete the playlist itself
+    cursor.execute("""
+        DELETE FROM Playlist
+        WHERE playlist_id = ? AND user_id = ?
+    """, (playlist_id, session['user_id']))
+
+    conn.commit()
+    conn.close()
+
+    flash('Playlist deleted successfully.', 'info')
+    return redirect(url_for('library'))
+
+@app.route('/playlist/<int:playlist_id>/rename', methods=['POST'])
+def rename_playlist(playlist_id):
+    if 'user_id' not in session:
+        flash('Please login.', 'error')
+        return redirect(url_for('login'))
+
+    new_name = request.form['new_name']
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE Playlist
+        SET playlist_name = ?
+        WHERE playlist_id = ? AND user_id = ?
+    """, (new_name, playlist_id, session['user_id']))
+
+    conn.commit()
+    conn.close()
+
+    flash('Playlist renamed successfully.', 'success')
+    return redirect(url_for('view_playlist', playlist_id=playlist_id))
+
+
+@app.route('/playlist/<int:playlist_id>/add', methods=['POST'])
+def add_track_to_playlist(playlist_id):
+    if 'user_id' not in session:
+        flash('Please login.', 'error')
+        return redirect(url_for('login'))
+
+    track_id = request.form['track_id']
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM Playlist_Track
+        WHERE playlist_id = ? AND track_id = ?
+    """, (playlist_id, track_id))
+
+    if cursor.fetchone():
+        flash('Track already in playlist.', 'info')
+    else:
+        cursor.execute("""
+            SELECT COALESCE(MAX(position), 0) + 1
+            FROM Playlist_Track
+            WHERE playlist_id = ?
+        """, (playlist_id,))
+        next_position = cursor.fetchone()[0]
+
+        cursor.execute("""
+            INSERT INTO Playlist_Track (playlist_id, track_id, position)
+            VALUES (?, ?, ?)
+        """, (playlist_id, track_id, next_position))
+
+        flash('Track added!', 'success')
+
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('view_playlist', playlist_id=playlist_id))
+
+
 @app.route('/search')
 def search():
     """Search page"""
@@ -837,3 +1021,4 @@ if not os.path.exists(DATABASE):
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
+
