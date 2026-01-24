@@ -68,6 +68,7 @@ def init_db():
             album_id INTEGER NOT NULL,
             track_number INTEGER,
             duration_seconds INTEGER NOT NULL,
+            audio_url TEXT,
             FOREIGN KEY (album_id) REFERENCES Album(album_id)
         )
     ''')
@@ -268,22 +269,22 @@ def insert_sample_data(conn):
             VALUES (?, ?, ?, ?, ?)
         """, album)
     
-    # Sample Tracks
+    # Sample Tracks with audio URLs (using free sample music)
     tracks = [
-        ('Come Together', 1, 1, 259),
-        ('Something', 1, 2, 182),
-        ('Here Comes the Sun', 1, 3, 185),
-        ('Time', 2, 4, 413),
-        ('Money', 2, 6, 382),
-        ('So What', 3, 1, 544),
-        ('Freddie Freeloader', 3, 2, 585),
-        ('Paranoid Android', 4, 2, 383),
-        ('Karma Police', 4, 6, 261),
+        ('Come Together', 1, 1, 259, 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'),
+        ('Something', 1, 2, 182, 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3'),
+        ('Here Comes the Sun', 1, 3, 185, 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3'),
+        ('Time', 2, 4, 413, 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3'),
+        ('Money', 2, 6, 382, 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3'),
+        ('So What', 3, 1, 544, 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3'),
+        ('Freddie Freeloader', 3, 2, 585, 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3'),
+        ('Paranoid Android', 4, 2, 383, 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3'),
+        ('Karma Police', 4, 6, 261, 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3'),
     ]
     for track in tracks:
         cursor.execute("""
-            INSERT INTO Track (track_title, album_id, track_number, duration_seconds)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO Track (track_title, album_id, track_number, duration_seconds, audio_url)
+            VALUES (?, ?, ?, ?, ?)
         """, track)
     
     # Link tracks to genres
@@ -376,6 +377,18 @@ def migrate_db():
         except sqlite3.OperationalError as e:
             print(f"Migration error: {e}")
     
+    # Check if audio_url column exists in Track table
+    cursor.execute("PRAGMA table_info(Track)")
+    track_columns = [column[1] for column in cursor.fetchall()]
+    
+    if 'audio_url' not in track_columns:
+        try:
+            cursor.execute("ALTER TABLE Track ADD COLUMN audio_url TEXT")
+            conn.commit()
+            print("Added audio_url column to Track table")
+        except sqlite3.OperationalError as e:
+            print(f"Migration error: {e}")
+    
     conn.close()
 
 # Helper function to hash passwords
@@ -405,6 +418,7 @@ def index():
     albums = cursor.fetchall()
     
     conn.close()
+    # Developer: Harman Singh - Render template for homepage
     return render_template('index.html', albums=albums)
 
 # Developer: Ihsaan, Harman Singh
@@ -709,9 +723,11 @@ def album_detail(album_id):
     """, (album_id,))
     album = cursor.fetchone()
     
-    # Get tracks
+    # Get tracks (songs)
+    # Developer: Harman Singh - Query to retrieve all songs/tracks for the album
     cursor.execute("""
-        SELECT t.*, GROUP_CONCAT(g.genre_name, ', ') as genres
+        SELECT t.track_id, t.track_title, t.album_id, t.track_number, 
+               t.duration_seconds, t.audio_url, GROUP_CONCAT(g.genre_name, ', ') as genres
         FROM Track t
         LEFT JOIN Track_Genre tg ON t.track_id = tg.track_id
         LEFT JOIN Genre g ON tg.genre_id = g.genre_id
