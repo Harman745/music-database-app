@@ -818,6 +818,35 @@ body.menu-open {
     font-size: 14px;
 }
 
+/* Play Button */
+.play-btn {
+    background: var(--spotify-green);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.play-btn:hover {
+    background: var(--spotify-green-hover);
+    transform: scale(1.05);
+}
+
+.play-btn.disabled {
+    background: #555;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.play-btn.disabled:hover {
+    transform: none;
+    background: #555;
+}
+
 /* Reviews Section */
 .reviews-section {
     margin: 48px 0;

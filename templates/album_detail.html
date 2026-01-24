@@ -78,10 +78,51 @@
                     <span class="track-duration">
                         {{ (track['duration_seconds'] // 60) }}:{{ '%02d'|format(track['duration_seconds'] % 60) }}
                     </span>
+                    {% if track['audio_url'] %}
+                    <button class="play-btn" onclick="playTrack('{{ track['audio_url'] }}', '{{ track['track_title'] }}')">▶️ Play</button>
+                    {% else %}
+                    <button class="play-btn disabled" disabled>🔇 No Audio</button>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
         </section>
+
+        <!-- Audio Player -->
+        <div id="audio-player" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; background: #1a1a1a; padding: 15px; border-top: 2px solid #1db954;">
+            <div class="container">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <span id="current-track" style="color: white; flex: 1;">Now Playing: </span>
+                    <audio id="audio-element" controls style="flex: 2;">
+                        <source id="audio-source" src="" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                    <button onclick="closePlayer()" style="background: #ff4444; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer;">✕ Close</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        function playTrack(url, title) {
+            const player = document.getElementById('audio-player');
+            const audio = document.getElementById('audio-element');
+            const source = document.getElementById('audio-source');
+            const currentTrack = document.getElementById('current-track');
+            
+            source.src = url;
+            audio.load();
+            audio.play();
+            currentTrack.textContent = 'Now Playing: ' + title;
+            player.style.display = 'block';
+        }
+        
+        function closePlayer() {
+            const player = document.getElementById('audio-player');
+            const audio = document.getElementById('audio-element');
+            audio.pause();
+            player.style.display = 'none';
+        }
+        </script>
 
         <section class="reviews-section">
             <h3>User Reviews</h3>
