@@ -450,8 +450,9 @@ body.menu-open {
 .page-header {
     background: linear-gradient(180deg, #1e3a8a 0%, transparent 100%);
     color: var(--spotify-white);
-    padding: 48px 0 32px;
+    padding: 72px 0 32px;
     margin-bottom: 32px;
+    margin-top: 24px;
 }
 
 .page-header h1 {

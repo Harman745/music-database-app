@@ -30,6 +30,7 @@ def init_db():
             password_hash TEXT NOT NULL,
             first_name TEXT,
             last_name TEXT,
+            memorable_word TEXT,
             date_joined DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -358,11 +359,31 @@ def insert_sample_data(conn):
     
     conn.commit()
 
+def migrate_db():
+    """Add memorable_word column to existing User table if it doesn't exist"""
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    # Check if memorable_word column exists
+    cursor.execute("PRAGMA table_info(User)")
+    columns = [column[1] for column in cursor.fetchall()]
+    
+    if 'memorable_word' not in columns:
+        try:
+            cursor.execute("ALTER TABLE User ADD COLUMN memorable_word TEXT")
+            conn.commit()
+            print("Added memorable_word column to User table")
+        except sqlite3.OperationalError as e:
+            print(f"Migration error: {e}")
+    
+    conn.close()
+
 # Helper function to hash passwords
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 # Routes
+# Developer: Yuvraj Singh Bahia
 @app.route('/')
 def index():
     """Homepage"""
@@ -386,6 +407,7 @@ def index():
     conn.close()
     return render_template('index.html', albums=albums)
 
+# Developer: Ihsaan, Harman Singh
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     """User registration"""
@@ -395,15 +417,16 @@ def register():
         password = request.form['password']
         first_name = request.form.get('first_name', '')
         last_name = request.form.get('last_name', '')
+        memorable_word = request.form.get('memorable_word', '')
         
         conn = get_db()
         cursor = conn.cursor()
         
         try:
             cursor.execute("""
-                INSERT INTO User (username, email, password_hash, first_name, last_name)
-                VALUES (?, ?, ?, ?, ?)
-            """, (username, email, hash_password(password), first_name, last_name))
+                INSERT INTO User (username, email, password_hash, first_name, last_name, memorable_word)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (username, email, hash_password(password), first_name, last_name, memorable_word.lower()))
             conn.commit()
             flash('Registration successful! Please login.', 'success')
             return redirect(url_for('login'))
@@ -414,18 +437,20 @@ def register():
     
     return render_template('register.html')
 
+# Developer: Ihsaan
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """User login"""
     if request.method == 'POST':
-        username = request.form['username']
+        username_or_email = request.form['username']
         password = request.form['password']
         
         conn = get_db()
         cursor = conn.cursor()
+        # Check if the input matches either username or email
         cursor.execute("""
-            SELECT * FROM User WHERE username = ? AND password_hash = ?
-        """, (username, hash_password(password)))
+            SELECT * FROM User WHERE (username = ? OR email = ?) AND password_hash = ?
+        """, (username_or_email, username_or_email, hash_password(password)))
         user = cursor.fetchone()
         conn.close()
         
@@ -435,7 +460,7 @@ def login():
             flash('Login successful!', 'success')
             return redirect(url_for('index'))
         else:
-            flash('Invalid username or password.', 'error')
+            flash('Invalid username/email or password.', 'error')
     
     return render_template('login.html')
 
@@ -446,6 +471,70 @@ def logout():
     flash('Logged out successfully.', 'success')
     return redirect(url_for('index'))
 
+# Developer: Harman Singh
+@app.route('/forgot-password', methods=['GET', 'POST'])
+def forgot_password():
+    """Forgot password - Request password reset"""
+    if request.method == 'POST':
+        email = request.form['email']
+        memorable_word = request.form['memorable_word']
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM User WHERE email = ?", (email,))
+        user = cursor.fetchone()
+        conn.close()
+        
+        if user:
+            # Verify memorable word
+            if user['memorable_word'] and user['memorable_word'].lower() == memorable_word.lower():
+                # Store the user_id in session for password reset
+                session['reset_user_id'] = user['user_id']
+                session['reset_email'] = email
+                flash('Security verified! Please enter your new password.', 'success')
+                return redirect(url_for('reset_password'))
+            else:
+                flash('Incorrect memorable word. Please try again.', 'error')
+        else:
+            flash('No account found with that email address.', 'error')
+    
+    return render_template('forgot_password.html')
+
+# Developer: Harman Singh
+@app.route('/reset-password', methods=['GET', 'POST'])
+def reset_password():
+    """Reset password page"""
+    # Check if user has gone through forgot password flow
+    if 'reset_user_id' not in session:
+        flash('Please use the forgot password page first.', 'error')
+        return redirect(url_for('forgot_password'))
+    
+    if request.method == 'POST':
+        new_password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        
+        if new_password != confirm_password:
+            flash('Passwords do not match.', 'error')
+            return render_template('reset_password.html')
+        
+        conn = get_db()
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE User SET password_hash = ? WHERE user_id = ?
+        """, (hash_password(new_password), session['reset_user_id']))
+        conn.commit()
+        conn.close()
+        
+        # Clear reset session data
+        session.pop('reset_user_id', None)
+        session.pop('reset_email', None)
+        
+        flash('Password reset successful! Please login with your new password.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_password.html', email=session.get('reset_email'))
+
+# Developer: Harman Singh
 @app.route('/artists')
 def artists():
     """List all artists"""
@@ -462,6 +551,7 @@ def artists():
     conn.close()
     return render_template('artists.html', artists=artists)
 
+# Developer: Michel
 @app.route('/artist/<int:artist_id>')
 def artist_detail(artist_id):
     """Artist detail page"""
@@ -559,6 +649,7 @@ def rate_artist(artist_id):
     
     return redirect(url_for('artist_detail', artist_id=artist_id))
 
+# Developer: Harman Singh
 @app.route('/albums')
 def albums():
     """List all albums"""
@@ -745,6 +836,7 @@ def toggle_favorite(album_id):
     conn.close()
     return redirect(url_for('album_detail', album_id=album_id))
 
+# Developer: Hasham
 @app.route('/library')
 def library():
     """User's library"""
@@ -782,6 +874,190 @@ def library():
     
     conn.close()
     return render_template('library.html', favorite_albums=favorite_albums, playlists=playlists)
+
+@app.route('/playlist/create', methods=['POST'])
+def create_playlist():
+    if 'user_id' not in session:
+        flash('Please login to create playlists.', 'error')
+        return redirect(url_for('login'))
+
+    playlist_name = request.form['playlist_name']
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT INTO Playlist (user_id, playlist_name)
+        VALUES (?, ?)
+    """, (session['user_id'], playlist_name))
+    conn.commit()
+    conn.close()
+
+    flash('Playlist created successfully!', 'success')
+    return redirect(url_for('library'))
+
+@app.route('/playlist/<int:playlist_id>')
+def view_playlist(playlist_id):
+    if 'user_id' not in session:
+        flash('Please login to view playlists.', 'error')
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM Playlist
+        WHERE playlist_id = ? AND user_id = ?
+    """, (playlist_id, session['user_id']))
+    playlist = cursor.fetchone()
+
+    if not playlist:
+        flash('Playlist not found.', 'error')
+        return redirect(url_for('library'))
+
+    cursor.execute("""
+        SELECT t.track_id, t.track_title, t.duration_seconds,
+               a.album_title, ar.artist_name
+        FROM Playlist_Track pt
+        JOIN Track t ON pt.track_id = t.track_id
+        JOIN Album a ON t.album_id = a.album_id
+        JOIN Artist ar ON a.artist_id = ar.artist_id
+        WHERE pt.playlist_id = ?
+        ORDER BY t.track_number
+    """, (playlist_id,))
+    tracks = cursor.fetchall()
+
+    cursor.execute("""
+        SELECT t.track_id, t.track_title, ar.artist_name
+        FROM Track t
+        JOIN Album a ON t.album_id = a.album_id
+        JOIN Artist ar ON a.artist_id = ar.artist_id
+        ORDER BY ar.artist_name, t.track_title
+    """)
+    all_tracks = cursor.fetchall()
+
+    total_duration = sum(t['duration_seconds'] for t in tracks)
+    track_count = len(tracks)
+
+    conn.close()
+
+    return render_template(
+        'playlist_view.html',
+        playlist=playlist,
+        tracks=tracks,
+        all_tracks=all_tracks,
+        total_duration=total_duration,
+        track_count=track_count
+    )
+
+@app.route('/playlist/<int:playlist_id>/remove/<int:track_id>', methods=['POST'])
+def remove_track(playlist_id, track_id):
+    if 'user_id' not in session:
+        flash('Please login.', 'error')
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        DELETE FROM Playlist_Track
+        WHERE playlist_id = ? AND track_id = ?
+    """, (playlist_id, track_id))
+
+    conn.commit()
+    conn.close()
+
+    flash('Track removed from playlist.', 'info')
+    return redirect(url_for('view_playlist', playlist_id=playlist_id))
+
+@app.route('/playlist/<int:playlist_id>/delete', methods=['POST'])
+def delete_playlist(playlist_id):
+    if 'user_id' not in session:
+        flash('Please login.', 'error')
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Delete all tracks inside the playlist
+    cursor.execute("""
+        DELETE FROM Playlist_Track
+        WHERE playlist_id = ?
+    """, (playlist_id,))
+
+    # Delete the playlist itself
+    cursor.execute("""
+        DELETE FROM Playlist
+        WHERE playlist_id = ? AND user_id = ?
+    """, (playlist_id, session['user_id']))
+
+    conn.commit()
+    conn.close()
+
+    flash('Playlist deleted successfully.', 'info')
+    return redirect(url_for('library'))
+
+@app.route('/playlist/<int:playlist_id>/rename', methods=['POST'])
+def rename_playlist(playlist_id):
+    if 'user_id' not in session:
+        flash('Please login.', 'error')
+        return redirect(url_for('login'))
+
+    new_name = request.form['new_name']
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE Playlist
+        SET playlist_name = ?
+        WHERE playlist_id = ? AND user_id = ?
+    """, (new_name, playlist_id, session['user_id']))
+
+    conn.commit()
+    conn.close()
+
+    flash('Playlist renamed successfully.', 'success')
+    return redirect(url_for('view_playlist', playlist_id=playlist_id))
+
+
+@app.route('/playlist/<int:playlist_id>/add', methods=['POST'])
+def add_track_to_playlist(playlist_id):
+    if 'user_id' not in session:
+        flash('Please login.', 'error')
+        return redirect(url_for('login'))
+
+    track_id = request.form['track_id']
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT * FROM Playlist_Track
+        WHERE playlist_id = ? AND track_id = ?
+    """, (playlist_id, track_id))
+
+    if cursor.fetchone():
+        flash('Track already in playlist.', 'info')
+    else:
+        cursor.execute("""
+            SELECT COALESCE(MAX(position), 0) + 1
+            FROM Playlist_Track
+            WHERE playlist_id = ?
+        """, (playlist_id,))
+        next_position = cursor.fetchone()[0]
+
+        cursor.execute("""
+            INSERT INTO Playlist_Track (playlist_id, track_id, position)
+            VALUES (?, ?, ?)
+        """, (playlist_id, track_id, next_position))
+
+        flash('Track added!', 'success')
+
+    conn.commit()
+    conn.close()
+
+    return redirect(url_for('view_playlist', playlist_id=playlist_id))
+
 
 @app.route('/search')
 def search():
@@ -836,4 +1112,8 @@ if not os.path.exists(DATABASE):
     init_db()
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # Run database migration to add new columns
+    migrate_db()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
+

@@ -52,18 +52,22 @@
 
     <section class="library-section">
         <h2>My Playlists</h2>
+        <form action="{{ url_for('create_playlist') }}" method="POST" class="create-playlist-form">
+    <input type="text" name="playlist_name" placeholder="New playlist name" required>
+    <button type="submit" class="btn-primary">Create Playlist</button>
+</form>
         {% if playlists %}
             <div class="playlists-list">
                 {% for playlist in playlists %}
-                <div class="playlist-card">
-                    <div class="playlist-icon">📚</div>
-                    <div class="playlist-info">
-                        <h3>{{ playlist['playlist_name'] }}</h3>
-                        <p>{{ playlist['track_count'] }} track(s)</p>
-                        <p class="playlist-date">Created: {{ playlist['created_date'][:10] }}</p>
-                    </div>
-                </div>
-                {% endfor %}
+<a href="{{ url_for('view_playlist', playlist_id=playlist['playlist_id']) }}" class="playlist-card">
+    <div class="playlist-icon">📚</div>
+    <div class="playlist-info">
+        <h3>{{ playlist['playlist_name'] }}</h3>
+        <p>{{ playlist['track_count'] }} track(s)</p>
+        <p class="playlist-date">Created: {{ playlist['created_date'][:10] }}</p>
+    </div>
+</a>
+{% endfor %}
             </div>
         {% else %}
             <p class="no-results">You haven't created any playlists yet.</p>
